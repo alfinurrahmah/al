@@ -1,0 +1,165 @@
+---
+title: "K Means"
+author: "Tim Modul"
+date: "10/11/2020"
+output: html_document
+---
+
+### Load library
+Lima library yang dibutuhkan, yaitu **readxl, dplyr, cluster, factoextra, NbClust**. Jika belum terinstall, silahkan install terlebih dahulu dengan perintah `install.packages("nama-package")`.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(readxl)# import file excel
+library(dplyr) # menggunakan pipe operator
+library(cluster) # analisis cluster
+library(factoextra) # EDA, untuk membuat distance matriks
+library(NbClust) # menentukan jumlah cluster
+library(fpc)
+library(tensorflow)
+```
+
+### Baca data
+Data tersimpan di folder `dataset`
+```{r}
+book3 <- Book3 %>% 
+        as.data.frame()
+head(book3)
+```
+
+### Mengganti Row Names
+Nama kab/kota dijadikan row index. Kemudian kolom nama kab/kota dikeluarkan
+```{r}
+row.names(book3) <- book3$Prov_Kab_Kota 
+book3 <- book3[,-1]
+head(book3)
+```
+### Eksplorasi Data
+```{r}
+summary(book3) #udah di excel
+```
+
+
+```{r}
+korelasi <- cor(x=book4$IPM, y=book4[,1:4])
+korelasi
+korelasi1 <- cor(book4)
+korelasi1
+corrplot(korelasi1, method = "circle")
+```
+
+```{r}
+```
+
+
+### Optimal Number of Clusters
+```{r}
+set.seed(123)
+fviz_nbclust(book3, kmeans, method = "silhouette")
+fviz_nbclust(book3, kmeans, method = "gap_stat")
+fviz_nbclust(book3, kmeans, method = "wss")
+```
+
+### Compute k-means clustering
+```{r}
+data.km <- kmeans(book3, 4, nstart = 25)
+data.km
+```
+```{r}
+sil1 <- silhouette(data.km$cluster, dist(book3))
+sil1
+```
+
+
+```{r}
+plot(sil1, main ="Silhouette plot - K-means")
+```
+
+
+```{r}
+fviz_silhouette(sil1)
+si.sum <- summary(sil)
+summary(sil)
+```
+
+
+### Mendapatkan Summary Tiap Cluster
+```{r}
+book3 %>% 
+  aggregate(by=list(cluster=km.data3$cluster), mean)
+```
+```{r}
+sil2 <- silhouette(data.hc$cluster, dist(book3))
+sil2
+rownames(sil2) <- Book3$Prov_Kab_Kota
+```
+
+
+```{r}
+plot(sil2, main ="Silhouette plot - hc")
+```
+
+
+```{r}
+fviz_silhouette(sil2)
+```
+
+
+```{r}
+si.sum <- summary(sil)
+summary(sil)
+```
+
+
+### Melaukan Pelabelan
+Melabeli tiap kab/kota dengan klasternya
+
+```{r}
+book3 %>% 
+  cbind(cluster_km = data.km$cluster, cluster_hc = data.hc$cluster) %>%
+  select(cluster_km,cluster_hc)
+```
+
+### Visualize: PCA Biplot
+```{r}
+fviz_cluster(data.km, data = book3,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+```
+
+
+
+```{r}
+pca <- prcomp(data, scale = TRUE)
+fviz_pca_biplot(pca)
+```
+
+#Cluster Validation
+Dunn Index pake library fpc
+```{r}
+# Compute pairwise-distance matrices
+dd <- dist(book3, method ="euclidean")
+# Statistics for k-means clustering
+km_stats <- cluster.stats(dd,  data.km$cluster)
+# (k-means) within clusters sum of squares
+km_stats$within.cluster.ss
+```
+
+
+```{r}
+hc_stats <- cluster.stats(dd,  data.hc$cluster)
+hc_stats
+```
+
+```{r}
+km_stats
+```
+
+```{r}
+sum.stat <- matrix(c(km_stats$within.cluster.ss, hc_stats$within.cluster.ss))
+rownames(sum.stat) <- c("K-Means", "Hc")
+sum.stat  
+
+plot(y=sum.stat,)  
+```
+
